@@ -7,6 +7,7 @@ About osascript:
 import os
 import sys
 import subprocess
+import asyncio
 from pathlib import Path
 from dataclasses import dataclass
 from logging import getLogger
@@ -326,7 +327,7 @@ def route_change(e: ft.RouteChangeEvent) -> None:
     e.page.update()
 
 
-def main(page: ft.Page):
+def _main(page: ft.Page):
     page.title = 'Image Viewer'
     # # page.window_bgcolor = ft.colors.TRANSPARENT
     # # page.bgcolor = ft.colors.TRANSPARENT
@@ -378,6 +379,72 @@ def main(page: ft.Page):
     # page.add(ft.Text(f"Initial route: {page.route}"))
     # page.update()
     route_change()
+
+
+@ft.observable
+@dataclass
+class Route:
+    route: str
+
+    def route_change(self, e: ft.RouteChangeEvent):
+        logger.info("Route changed from: %s to: %s", self.route, e.route)
+        self.route = e.route
+
+    async def view_popped(self, e: ft.ViewPopEvent):
+        logger.info("View popped")
+        views = ft.unwrap_component(ft.context.page.views)
+        if len(views) > 1:
+            await ft.context.page.push_route(views[-2].route)
+
+
+@ft.component
+def app() -> list[ft.View]:
+    '''Main UI of application.'''
+
+    route, _ = ft.use_state(Route(route=ft.context.page.route))
+
+    # subscribe to page events as soon as possible
+    ft.context.page.on_route_change = route.route_change
+    ft.context.page.on_view_pop = route.view_popped
+
+    logger.info('Pass: main views clear')
+    # topview = TopView()
+    # page.add(topview)
+    # page.add(ft.Text(f"Initial route: {page.route}"))
+
+    views = [
+        ft.View(
+            route='/',
+            controls=[
+                ft.Button(
+                    'Visit',
+                    on_click=lambda _: asyncio.create_task(
+                        ft.context.page.push_route('/fig')
+                    ),
+                )
+            ],
+        )
+    ]
+    if route.route == '/fig':
+        views += [
+            ft.View(
+                route='/fig',
+                controls=[
+                    ft.Button(
+                        'Figure',
+                        on_click=lambda _: asyncio.create_task(
+                            ft.context.page.push_route('/')
+                        ),
+                    )
+                ],
+            )
+        ]
+    return views
+
+
+def main(page: ft.Page):
+    page.title = 'Image Viewer'
+    page.render_views(app)
 
 
 def launch() -> None:
