@@ -8,6 +8,7 @@ from dataclasses import dataclass
 
 import flet as ft
 
+from .share import selectedimage
 from .. import backend
 
 __all__ = [
@@ -54,6 +55,9 @@ def functions() -> ft.Control:
 def gallery() -> ft.Control:
     '''Main gallery.'''
 
+    iterator_files = backend.get_imagepaths()
+    controls = [sumnailbutton(f) for f in iterator_files]
+
     images = ft.Row(
         width=1200,
         wrap=True,
@@ -61,12 +65,8 @@ def gallery() -> ft.Control:
         alignment=ft.MainAxisAlignment.CENTER,
         spacing=5,
         run_spacing=5,
+        controls=controls,
     )
-
-    iterator_files = backend.get_imagepaths()
-    image_button = ImageSumnailButton(width=200, height=200)
-    for f in iterator_files:
-        images.controls.append(image_button.get(f))
 
     return ft.Column(
         # width=1200,
@@ -77,56 +77,72 @@ def gallery() -> ft.Control:
     )
 
 
-class ImageSumnailButton:
+@dataclass
+class SumnailConfig:
+    width: int
+    height: int
+    inner_ratio: float = 0.90
+
+    def __post_init__(self) -> None:
+        self.inner_width = self.width * 0.9
+        self.inner_height = self.width * 0.9
+
+
+SumnailConfigContext = ft.create_context(SumnailConfig(width=200, height=200))
+
+
+@ft.component
+def sumnailbutton(fname: Path) -> ft.Control:
     '''Image sumanil button component.'''
 
-    def __init__(self, width: int, height: int) -> None:
-        self.width = width
-        self.height = height
+    config = ft.use_context(SumnailConfigContext)
 
-    def get(self, fname: Path) -> ft.Stack:
-        '''Create button.'''
-        # open_dialog = OpenImageDialog(fname)
-        img = ft.Image(
-            src=str(fname.absolute()),
-            width=self.width * 0.90,
-            height=self.height * 0.90,
-            fit=ft.BoxFit.NONE,
-            repeat=ft.ImageRepeat.REPEAT,
-            border_radius=ft.BorderRadius.all(20),
-        )
-        button = ft.Button(
-            content='',
-            # content=img,
-            # on_click=open_dialog,
-            on_click=lambda _: asyncio.create_task(ft.context.page.push_route('/fig')),
-            style=ft.ButtonStyle(
-                bgcolor={
-                    ft.ControlState.DEFAULT: ft.Colors.TRANSPARENT,
-                },
-                overlay_color={
-                    ft.ControlState.PRESSED: ft.Colors.BLUE_300,
-                    ft.ControlState.DEFAULT: ft.Colors.TRANSPARENT,
-                },
-                shape=ft.RoundedRectangleBorder(radius=20),
-                elevation=0,
-            ),
-            width=self.width * 0.90,
-            height=self.height * 0.90,
-            opacity=0.3,
-        )
-        stack = ft.Stack(
-            [img, button],
-            alignment=ft.Alignment.CENTER,
-        )
-        return ft.Card(
-            content=stack,
-            shadow_color=ft.Colors.ON_SURFACE_VARIANT,
-            bgcolor=ft.Colors.GREY_300,
-            width=self.width,
-            height=self.height,
+    def _select_image():
+        logger.info('change_page')
+        selectedimage.data.set(fname)
+        asyncio.create_task(ft.context.page.push_route('/fig'))
+
+    # open_dialog = OpenImageDialog(fname)
+    img = ft.Image(
+        src=str(fname.absolute()),
+        width=config.inner_width,
+        height=config.inner_height,
+        fit=ft.BoxFit.NONE,
+        repeat=ft.ImageRepeat.REPEAT,
+        border_radius=ft.BorderRadius.all(20),
+    )
+    button = ft.Button(
+        content='',
+        # content=img,
+        # on_click=open_dialog,
+        on_click=_select_image,
+        style=ft.ButtonStyle(
+            bgcolor={
+                ft.ControlState.DEFAULT: ft.Colors.TRANSPARENT,
+            },
+            overlay_color={
+                ft.ControlState.PRESSED: ft.Colors.BLUE_300,
+                ft.ControlState.DEFAULT: ft.Colors.TRANSPARENT,
+            },
             shape=ft.RoundedRectangleBorder(radius=20),
-        )
+            elevation=0,
+        ),
+        width=config.inner_width,
+        height=config.inner_height,
+        opacity=0.3,
+    )
+    stack = ft.Stack(
+        [img, button],
+        alignment=ft.Alignment.CENTER,
+    )
+    return ft.Card(
+        content=stack,
+        shadow_color=ft.Colors.GREY_600,
+        bgcolor=ft.Colors.GREY_300,
+        width=config.width,
+        height=config.height,
+        shape=ft.RoundedRectangleBorder(radius=20),
+    )
 
 
 # class TopView(ft.View):
