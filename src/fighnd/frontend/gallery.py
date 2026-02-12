@@ -10,6 +10,7 @@ import flet as ft
 
 from .share import selectedimage
 from .. import backend
+from ..backend import database
 
 __all__ = [
     'galleryview',
@@ -55,8 +56,8 @@ def functions() -> ft.Control:
 def gallery() -> ft.Control:
     '''Main gallery.'''
 
-    iterator_files = backend.get_imagepaths()
-    controls = [sumnailbutton(f) for f in iterator_files]
+    data = database.get_alldata()
+    controls = [sumnailbutton(d) for d in data]
 
     images = ft.Row(
         width=1200,
@@ -92,14 +93,15 @@ SumnailConfigContext = ft.create_context(SumnailConfig(width=200, height=200))
 
 
 @ft.component
-def sumnailbutton(fname: Path) -> ft.Control:
+def sumnailbutton(data: database.MainSchema) -> ft.Control:
     '''Image sumanil button component.'''
 
     config = ft.use_context(SumnailConfigContext)
+    fname = Path(data.directory).with_name(data.filename)
 
     def _select_image():
         logger.info('change_page')
-        selectedimage.data.set(fname)
+        selectedimage.data.set(data)
         asyncio.create_task(ft.context.page.push_route('/fig'))
 
     # open_dialog = OpenImageDialog(fname)

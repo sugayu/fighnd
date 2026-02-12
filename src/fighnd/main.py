@@ -7,7 +7,7 @@ About osascript:
 from logging import getLogger
 import flet as ft
 
-from fighnd import frontend
+from fighnd import frontend, backend
 
 logger = getLogger(__name__)
 
@@ -37,8 +37,15 @@ def main(page: ft.Page):
 
 def launch() -> None:
     '''Access point.'''
+    if not backend.exist_database():
+        backend.initialize_database()
+
     ft.run(main)
 
 
 if __name__ == '__main__':
+    from sugayutils.log import mylogconfig
+
+    mylogconfig()
+
     launch()

@@ -9,6 +9,7 @@ import flet as ft
 
 from .share import selectedimage
 from .. import backend
+from ..backend import database
 
 logger = getLogger(__name__)
 
@@ -57,7 +58,7 @@ def imageview() -> ft.View:
     )
 
 
-@ft.observable
+# @ft.observable
 @dataclass
 class SelectedDataContainer:
     path_image: Path = Path('')
@@ -66,10 +67,13 @@ class SelectedDataContainer:
     citation: str = 'Citation'
     tags: list[str] = field(default_factory=list)
 
-    def set(self, fname: Path) -> None:
+    def set(self, data: database.MainSchema) -> None:
         logger.info('Setter')
-        self.path_image = fname
-        self.filename = fname.name
+        self.path_image = Path(data.directory).with_name(data.filename)
+        self.filename = data.filename
+        self.explanation = data.explanation
+        self.citation = data.citation
+        self.tags = [data.tags]
 
 
 @dataclass
