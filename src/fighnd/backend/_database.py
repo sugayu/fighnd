@@ -82,8 +82,9 @@ class SQLTable:
         sql += ') RETURNING id'
         sql = sql.replace(', ', '', 1)
 
+        _values = [v if not isinstance(v, bytes) else b'...' for v in values]
         logger.info(f'sql> {sql}')
-        logger.info(f'values: {values}')
+        logger.info(f'values: {_values}')
         self.cur.execute(sql, values)
         return self.cur.fetchone()[0]
 
@@ -138,7 +139,10 @@ class SQLTable:
             values.append(v)
         sql += ' SET ' + kw[1:]
         sql += f' WHERE id = {ID}'
-        logger.info(f'sql> {sql}, values={values}')
+
+        _values = [v if not isinstance(v, bytes) else b'...' for v in values]
+        logger.info(f'sql> {sql}')
+        logger.info(f'values={_values}')
         self.cur.execute(sql, values)
 
     def commit(self) -> None:

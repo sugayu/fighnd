@@ -78,9 +78,11 @@ def save_file(fname_original: str) -> backend.database.MainSchema:
     newfpath.parent.mkdir(exist_ok=True)
     shutil.move(fpath_original, newfpath)
 
+    thumbnail = backend.get_thumbnail(newfpath.absolute())
     schema = backend.database.MainSchema(
         filename=newfpath.name,
         directory=str(newfpath.parent),
+        thumbnail=thumbnail,
     )
     _id = backend.database.insert_data(schema)
     logger.info(f'new ID: {_id}')

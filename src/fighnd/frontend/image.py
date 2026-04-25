@@ -32,7 +32,7 @@ class SelectedDataContainer:
     citation: str = 'Citation'
     explanation: str = 'This is explanation'
     tags: list[str] = field(default_factory=list)
-    sumnail: bytes = b''
+    thumbnail: bytes = b''
     editable_mode: bool = False
 
     def set(self, data: database.MainSchema) -> None:
@@ -44,7 +44,7 @@ class SelectedDataContainer:
         self.citation = data.citation
         self.explanation = data.explanation
         self.tags = [data.tags]
-        self.sumnail = data.sumnail
+        self.thumbnail = data.thumbnail
 
     def dump(self) -> database.MainSchema:
         logger.info('Dump')
@@ -56,7 +56,7 @@ class SelectedDataContainer:
             citation=self.citation,
             explanation=self.explanation,
             tags=','.join(self.tags),
-            sumnail=self.sumnail,
+            thumbnail=self.thumbnail,
         )
 
 

@@ -63,7 +63,7 @@ async def add_new_file(e: ft.Event[ft.Button]) -> None:
 
     logger.info(f'Picked file: {fname_pick}')
     record = backend.save_file(fname_pick)
-    logger.info(f'New record: {record}')
+    logger.info(f'New record: {record._for_log}')
 
     logger.info('change_page')
     selectedimage.data.set(record)
@@ -76,7 +76,7 @@ def gallery() -> ft.Control:
     '''Main gallery.'''
 
     data = database.get_alldata()
-    controls = [sumnailbutton(d) for d in data]
+    controls = [thumbnailbutton(d) for d in data]
 
     images = ft.Row(
         width=1200,
@@ -98,7 +98,7 @@ def gallery() -> ft.Control:
 
 
 @dataclass
-class SumnailConfig:
+class ThumbnailConfig:
     width: int
     height: int
     inner_ratio: float = 0.90
@@ -108,14 +108,14 @@ class SumnailConfig:
         self.inner_height = self.width * 0.9
 
 
-SumnailConfigContext = ft.create_context(SumnailConfig(width=200, height=200))
+ThumbnailConfigContext = ft.create_context(ThumbnailConfig(width=200, height=200))
 
 
 @ft.component
-def sumnailbutton(data: database.MainSchema) -> ft.Control:
-    '''Image sumanil button component.'''
+def thumbnailbutton(data: database.MainSchema) -> ft.Control:
+    '''Image thumbnail button component.'''
 
-    config = ft.use_context(SumnailConfigContext)
+    config = ft.use_context(ThumbnailConfigContext)
     fname = Path(data.directory) / data.filename
     if not fname.exists():
         logger.warning(f'No image exists: {fname}')
@@ -127,12 +127,14 @@ def sumnailbutton(data: database.MainSchema) -> ft.Control:
         asyncio.create_task(ft.context.page.push_route(route_image))
 
     # open_dialog = OpenImageDialog(fname)
+
     img = ft.Image(
-        src=str(fname.absolute()),
+        # src=str(fname.absolute()),
+        src=data.thumbnail,
         width=config.inner_width,
         height=config.inner_height,
-        fit=ft.BoxFit.NONE,
-        repeat=ft.ImageRepeat.REPEAT,
+        fit=ft.BoxFit.COVER,
+        repeat=ft.ImageRepeat.NO_REPEAT,
         border_radius=ft.BorderRadius.all(20),
     )
     button = ft.Button(

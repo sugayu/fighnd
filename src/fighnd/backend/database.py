@@ -32,7 +32,11 @@ class MainSchema(NamedTuple):
     citation: str = ''
     explanation: str = ''
     tags: str = ''
-    sumnail: bytes = b''
+    thumbnail: bytes = b''
+
+    def _for_log(self) -> MainSchema:
+        '''Change self to simble contents just for log.'''
+        return self._replace(thumbnail=b'...')
 
 
 def select_a_record(_id: int) -> MainSchema:

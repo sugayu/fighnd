@@ -1,2 +1,4 @@
 fighnd.egg-info
 *.pyc
+/development.db
+/example/
