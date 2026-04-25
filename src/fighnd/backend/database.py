@@ -28,10 +28,19 @@ class MainSchema(NamedTuple):
     id: int = 0
     filename: str = ''
     directory: str = ''
-    explanation: str = ''
+    caption: str = ''
     citation: str = ''
+    explanation: str = ''
     tags: str = ''
     sumnail: bytes = b''
+
+
+def select_a_record(_id: int) -> MainSchema:
+    '''Return all data.'''
+    name_table = 'Images'
+    with SQLTable(name_table) as t:
+        data = t.select('*', where=f'id = {_id}')[0]
+    return MainSchema(*data)
 
 
 def get_alldata() -> list[MainSchema]:
@@ -39,7 +48,7 @@ def get_alldata() -> list[MainSchema]:
     name_table = 'Images'
     with SQLTable(name_table) as t:
         data = t.selectall()
-    return [MainSchema(d) for d in data]
+    return [MainSchema(*d) for d in data]
 
 
 def get_imagepaths() -> Generator[Path, None, None]:
@@ -64,9 +73,18 @@ def initialize_database() -> None:
         t.create_table(**MainSchema()._asdict())
 
 
-def insert_data(schema: MainSchema) -> None:
-    '''Insert data to database.'''
+def insert_data(schema: MainSchema) -> int:
+    '''Insert data to database and Return id.'''
     name_table = 'Images'
     with SQLTable(name_table) as t:
-        t.insert(**schema._asdict())
+        _id = t.insert(**schema._asdict())
+        t.con.commit()
+    return _id
+
+
+def update_data(schema: MainSchema) -> None:
+    '''Update data in database.'''
+    name_table = 'Images'
+    with SQLTable(name_table) as t:
+        t.update(ID=schema.id, columns=schema._asdict())
         t.con.commit()

@@ -24,7 +24,7 @@ def app() -> list[ft.View]:
     ft.context.page.on_view_pop = route.view_popped
 
     views = [frontend.galleryview()]
-    if route.route == '/fig':
+    if route.route == frontend.image.ROUTE:
         views += [frontend.imageview()]
     logger.info(f'Now route is {route.route}')
     return views

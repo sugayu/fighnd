@@ -8,6 +8,8 @@ from dataclasses import dataclass
 
 import flet as ft
 
+from .image import ROUTE as route_image
+from .image import SelectedDataContainer
 from .share import selectedimage
 from .. import backend
 from ..backend import database
@@ -37,10 +39,10 @@ def galleryview() -> ft.View:
 def functions() -> ft.Control:
     '''Functional item list to manipulate the app and images.'''
 
-    button_upload = ft.Button(
+    button_add = ft.Button(
         "Add a new image",
         icon=ft.Icons.UPLOAD_FILE,
-        # on_click=backend.handle_pick_files,
+        on_click=add_new_file,
     )
     button_save = ft.Button(
         "Save file",
@@ -49,7 +51,24 @@ def functions() -> ft.Control:
         # disabled=page.web,
     )
 
-    return ft.Row(controls=[button_upload, button_save])
+    return ft.Row(controls=[button_add, button_save])
+
+
+async def add_new_file(e: ft.Event[ft.Button]) -> None:
+    '''Pick and Save files then Move to the edit mode.'''
+    fname_pick = await backend.pick_file()
+    if not fname_pick:
+        logger.info('No file was picked.')
+        return
+
+    logger.info(f'Picked file: {fname_pick}')
+    record = backend.save_file(fname_pick)
+    logger.info(f'New record: {record}')
+
+    logger.info('change_page')
+    selectedimage.data.set(record)
+    selectedimage.data.editable_mode = True
+    asyncio.create_task(ft.context.page.push_route(route_image))
 
 
 @ft.component
@@ -97,12 +116,15 @@ def sumnailbutton(data: database.MainSchema) -> ft.Control:
     '''Image sumanil button component.'''
 
     config = ft.use_context(SumnailConfigContext)
-    fname = Path(data.directory).with_name(data.filename)
+    fname = Path(data.directory) / data.filename
+    if not fname.exists():
+        logger.warning(f'No image exists: {fname}')
 
     def _select_image():
         logger.info('change_page')
         selectedimage.data.set(data)
-        asyncio.create_task(ft.context.page.push_route('/fig'))
+        selectedimage.data.editable_mode = False
+        asyncio.create_task(ft.context.page.push_route(route_image))
 
     # open_dialog = OpenImageDialog(fname)
     img = ft.Image(
@@ -169,41 +191,3 @@ def sumnailbutton(data: database.MainSchema) -> ft.Control:
 #                 ft.Row([button_save, self.save_file_path]),
 #             ]
 #         super().__init__(route=self.ROUTE, controls=controls, **kwargs)
-
-#     def handle_pick_files(self, e: ft.Event[ft.Button]) -> None:
-#         '''Pick files.'''
-#         files = ft.FilePicker().pick_files(allow_multiple=True)
-#         if not files:
-#             return
-
-#         self.selected_files.value = ", ".join([f.path for f in files])
-#         self.save_file_path.update()
-
-#     def pick_files_result(self, e: ft.Event):
-#         '''Pick files dialog
-
-#         Note:
-#             DEPRECATED
-#         '''
-
-#         if not e.files:
-#             return
-
-#         self.selected_files.value = ", ".join([f.path for f in e.files])
-#         self.selected_files.update()
-
-#     def handle_save_file(self, e: ft.Event[ft.Button]) -> None:
-#         '''Save file.'''
-#         self.save_file_path.value = ft.FilePicker().save_file()
-#         # e.path if e.path else "Cancelled!"
-#         self.save_file_path.update()
-
-#     def save_file_result(self, e: ft.Event):
-#         '''Save file dialog
-
-#         Note:
-#             DEPRECATED
-#         '''
-
-#         self.save_file_path.value = e.path if e.path else "Cancelled!"
-#         self.save_file_path.update()
