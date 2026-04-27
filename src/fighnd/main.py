@@ -7,7 +7,7 @@ About osascript:
 from logging import getLogger
 import flet as ft
 
-from fighnd import frontend
+from fighnd import frontend, backend, config
 
 logger = getLogger(__name__)
 
@@ -24,7 +24,7 @@ def app() -> list[ft.View]:
     ft.context.page.on_view_pop = route.view_popped
 
     views = [frontend.galleryview()]
-    if route.route == '/fig':
+    if route.route == frontend.image.ROUTE:
         views += [frontend.imageview()]
     logger.info(f'Now route is {route.route}')
     return views
@@ -32,13 +32,22 @@ def app() -> list[ft.View]:
 
 def main(page: ft.Page):
     page.title = 'Image Viewer'
+    page.window.width = config.frame_width
+    page.window.height = config.frame_height
     page.render_views(app)
 
 
 def launch() -> None:
     '''Access point.'''
+    if not backend.exist_database():
+        backend.initialize_database()
+
     ft.run(main)
 
 
 if __name__ == '__main__':
+    from sugayutils.log import mylogconfig
+
+    mylogconfig()
+
     launch()

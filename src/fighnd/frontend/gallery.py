@@ -8,8 +8,11 @@ from dataclasses import dataclass
 
 import flet as ft
 
+from .image import ROUTE as route_image
 from .share import selectedimage
 from .. import backend
+from ..backend import database
+from .. import config
 
 __all__ = [
     'galleryview',
@@ -28,7 +31,7 @@ def galleryview() -> ft.View:
     return ft.View(
         route=ROUTE,
         controls=controls,
-        width=1200,
+        width=config.frame_width,
     )
 
 
@@ -36,41 +39,58 @@ def galleryview() -> ft.View:
 def functions() -> ft.Control:
     '''Functional item list to manipulate the app and images.'''
 
-    button_upload = ft.Button(
+    button_add = ft.Button(
         "Add a new image",
         icon=ft.Icons.UPLOAD_FILE,
-        # on_click=backend.handle_pick_files,
+        on_click=add_new_file,
     )
-    button_save = ft.Button(
-        "Save file",
-        icon=ft.Icons.SAVE,
-        # on_click=lambda _: backend.save_file_dialog.save_file(),
-        # disabled=page.web,
-    )
+    # button_save = ft.Button(
+    #     "Save file",
+    #     icon=ft.Icons.SAVE,
+    #     # on_click=lambda _: backend.save_file_dialog.save_file(),
+    #     # disabled=page.web,
+    # )
 
-    return ft.Row(controls=[button_upload, button_save])
+    return ft.Row(controls=[button_add])
+
+
+async def add_new_file(e: ft.Event[ft.Button]) -> None:
+    '''Pick and Save files then Move to the edit mode.'''
+    fname_pick = await backend.pick_file()
+    if not fname_pick:
+        logger.info('No file was picked.')
+        return
+
+    logger.info(f'Picked file: {fname_pick}')
+    record = backend.save_file(fname_pick)
+    logger.info(f'New record: {record._log}')
+
+    logger.info('Change page to /fig')
+    selectedimage.data.set(record)
+    selectedimage.data.editable_mode = True
+    asyncio.create_task(ft.context.page.push_route(route_image))
 
 
 @ft.component
 def gallery() -> ft.Control:
     '''Main gallery.'''
 
-    iterator_files = backend.get_imagepaths()
-    controls = [sumnailbutton(f) for f in iterator_files]
+    data = database.get_alldata()
+    controls = [thumbnailbutton(d) for d in data]
 
     images = ft.Row(
-        width=1200,
+        width=config.frame_width,
         wrap=True,
         scroll='always',
         alignment=ft.MainAxisAlignment.CENTER,
-        spacing=5,
-        run_spacing=5,
+        spacing=config.gallery_spacing,
+        run_spacing=config.gallery_run_spacing,
         controls=controls,
     )
 
     return ft.Column(
         # width=1200,
-        height=400,
+        height=config.frame_height,
         controls=[images],
         scroll='always',
         alignment=ft.MainAxisAlignment.CENTER,
@@ -78,38 +98,49 @@ def gallery() -> ft.Control:
 
 
 @dataclass
-class SumnailConfig:
+class ThumbnailConfig:
     width: int
     height: int
     inner_ratio: float = 0.90
 
     def __post_init__(self) -> None:
-        self.inner_width = self.width * 0.9
-        self.inner_height = self.width * 0.9
+        self.inner_width = self.width * self.inner_ratio
+        self.inner_height = self.width * self.inner_ratio
 
 
-SumnailConfigContext = ft.create_context(SumnailConfig(width=200, height=200))
+ThumbnailConfigContext = ft.create_context(
+    ThumbnailConfig(
+        width=config.gallery_thumnail_size[0],
+        height=config.gallery_thumnail_size[1],
+    )
+)
 
 
 @ft.component
-def sumnailbutton(fname: Path) -> ft.Control:
-    '''Image sumanil button component.'''
+def thumbnailbutton(data: database.MainSchema) -> ft.Control:
+    '''Image thumbnail button component.'''
 
-    config = ft.use_context(SumnailConfigContext)
+    thumbconfig = ft.use_context(ThumbnailConfigContext)
+    fname = Path(data.directory) / data.filename
+    if not fname.exists():
+        logger.warning(f'No image exists: {fname}')
 
     def _select_image():
         logger.info('change_page')
-        selectedimage.data.set(fname)
-        asyncio.create_task(ft.context.page.push_route('/fig'))
+        selectedimage.data.set(data)
+        selectedimage.data.editable_mode = False
+        asyncio.create_task(ft.context.page.push_route(route_image))
 
     # open_dialog = OpenImageDialog(fname)
+
     img = ft.Image(
-        src=str(fname.absolute()),
-        width=config.inner_width,
-        height=config.inner_height,
-        fit=ft.BoxFit.NONE,
-        repeat=ft.ImageRepeat.REPEAT,
-        border_radius=ft.BorderRadius.all(20),
+        # src=str(fname.absolute()),
+        src=data.thumbnail,
+        width=thumbconfig.inner_width,
+        height=thumbconfig.inner_height,
+        fit=ft.BoxFit.COVER,
+        repeat=ft.ImageRepeat.NO_REPEAT,
+        border_radius=ft.BorderRadius.all(config.gallery_border_radius),
     )
     button = ft.Button(
         content='',
@@ -124,12 +155,12 @@ def sumnailbutton(fname: Path) -> ft.Control:
                 ft.ControlState.PRESSED: ft.Colors.BLUE_300,
                 ft.ControlState.DEFAULT: ft.Colors.TRANSPARENT,
             },
-            shape=ft.RoundedRectangleBorder(radius=20),
+            shape=ft.RoundedRectangleBorder(radius=config.gallery_border_radius),
             elevation=0,
         ),
-        width=config.inner_width,
-        height=config.inner_height,
-        opacity=0.3,
+        width=thumbconfig.inner_width,
+        height=thumbconfig.inner_height,
+        opacity=config.gallery_button_opacity,
     )
     stack = ft.Stack(
         [img, button],
@@ -139,9 +170,9 @@ def sumnailbutton(fname: Path) -> ft.Control:
         content=stack,
         shadow_color=ft.Colors.GREY_600,
         bgcolor=ft.Colors.GREY_300,
-        width=config.width,
-        height=config.height,
-        shape=ft.RoundedRectangleBorder(radius=20),
+        width=thumbconfig.width,
+        height=thumbconfig.height,
+        shape=ft.RoundedRectangleBorder(radius=config.gallery_border_radius),
     )
 
 
@@ -167,41 +198,3 @@ def sumnailbutton(fname: Path) -> ft.Control:
 #                 ft.Row([button_save, self.save_file_path]),
 #             ]
 #         super().__init__(route=self.ROUTE, controls=controls, **kwargs)
-
-#     def handle_pick_files(self, e: ft.Event[ft.Button]) -> None:
-#         '''Pick files.'''
-#         files = ft.FilePicker().pick_files(allow_multiple=True)
-#         if not files:
-#             return
-
-#         self.selected_files.value = ", ".join([f.path for f in files])
-#         self.save_file_path.update()
-
-#     def pick_files_result(self, e: ft.Event):
-#         '''Pick files dialog
-
-#         Note:
-#             DEPRECATED
-#         '''
-
-#         if not e.files:
-#             return
-
-#         self.selected_files.value = ", ".join([f.path for f in e.files])
-#         self.selected_files.update()
-
-#     def handle_save_file(self, e: ft.Event[ft.Button]) -> None:
-#         '''Save file.'''
-#         self.save_file_path.value = ft.FilePicker().save_file()
-#         # e.path if e.path else "Cancelled!"
-#         self.save_file_path.update()
-
-#     def save_file_result(self, e: ft.Event):
-#         '''Save file dialog
-
-#         Note:
-#             DEPRECATED
-#         '''
-
-#         self.save_file_path.value = e.path if e.path else "Cancelled!"
-#         self.save_file_path.update()
