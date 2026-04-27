@@ -1,3 +1,3 @@
 from .database import get_imagepaths, exist_database, initialize_database
 from .io import open_image, pop_clipboard, pick_file, save_file
-from .imageprocess import get_thumbnail
+from .imageprocess import create_thumbnail

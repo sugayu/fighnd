@@ -7,7 +7,7 @@ About osascript:
 from logging import getLogger
 import flet as ft
 
-from fighnd import frontend, backend
+from fighnd import frontend, backend, config
 
 logger = getLogger(__name__)
 
@@ -32,6 +32,8 @@ def app() -> list[ft.View]:
 
 def main(page: ft.Page):
     page.title = 'Image Viewer'
+    page.window.width = config.frame_width
+    page.window.height = config.frame_height
     page.render_views(app)
 
 

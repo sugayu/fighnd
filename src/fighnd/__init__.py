@@ -1,5 +1,9 @@
 from pathlib import Path
+from . import config
+from logging import getLogger
 
 __version__ = '0.0.0'
-path = Path.home() / 'src/py/fighnd/example'
-path.mkdir(exist_ok=True)
+
+logger = getLogger(__name__)
+logger.info(f'HOMEPATH: {config.homepath}')
+config.homepath.mkdir(exist_ok=True)

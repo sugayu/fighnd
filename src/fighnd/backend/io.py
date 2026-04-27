@@ -10,7 +10,7 @@ import shutil
 
 import flet as ft
 
-from .. import path
+from .. import config
 from .. import backend
 
 __all__ = ['open_image', 'pop_clipboard', 'pick_file', 'save_file']
@@ -73,12 +73,12 @@ def pick_files_result(self, e: ft.Event):
 def save_file(fname_original: str) -> backend.database.MainSchema:
     '''Save a file to the auto-created path.'''
     fpath_original = Path(fname_original)
-    newfpath = create_newfilepath(fpath_original)
+    newfpath = make_newfilepath(fpath_original)
 
-    newfpath.parent.mkdir(exist_ok=True)
+    newfpath.parent.mkdir(exist_ok=True, parents=True)
     shutil.move(fpath_original, newfpath)
 
-    thumbnail = backend.get_thumbnail(newfpath.absolute())
+    thumbnail = backend.create_thumbnail(newfpath.absolute())
     schema = backend.database.MainSchema(
         filename=newfpath.name,
         directory=str(newfpath.parent),
@@ -89,11 +89,22 @@ def save_file(fname_original: str) -> backend.database.MainSchema:
     return backend.database.select_a_record(_id)
 
 
-def create_newfilepath(fpath_original: Path) -> Path:
+def move(from_: str | Path, to_: str | Path) -> None:
+    '''Move a file to a new path.'''
+    if from_ == to_:
+        return
+    path_from = Path(from_)
+    path_to = Path(to_)
+    shutil.move(path_from, path_to)
+
+
+def make_newfilepath(fpath_original: Path) -> Path:
     '''Create a new file path base on the date.'''
     now = datetime.datetime.now()
-    dpath = path / now.strftime('%Y%m')
-    fname = now.strftime('%Y%m%d%H%M%S') + fpath_original.suffix
+    ym = now.strftime('%Y%m')
+    ymdhms = now.strftime('%Y%m%d%H%M%S')
+    dpath = config.homepath / ym / ymdhms
+    fname = ymdhms + fpath_original.suffix
     return dpath / fname
 
 

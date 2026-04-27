@@ -9,10 +9,10 @@ from dataclasses import dataclass
 import flet as ft
 
 from .image import ROUTE as route_image
-from .image import SelectedDataContainer
 from .share import selectedimage
 from .. import backend
 from ..backend import database
+from .. import config
 
 __all__ = [
     'galleryview',
@@ -31,7 +31,7 @@ def galleryview() -> ft.View:
     return ft.View(
         route=ROUTE,
         controls=controls,
-        width=1200,
+        width=config.frame_width,
     )
 
 
@@ -44,14 +44,14 @@ def functions() -> ft.Control:
         icon=ft.Icons.UPLOAD_FILE,
         on_click=add_new_file,
     )
-    button_save = ft.Button(
-        "Save file",
-        icon=ft.Icons.SAVE,
-        # on_click=lambda _: backend.save_file_dialog.save_file(),
-        # disabled=page.web,
-    )
+    # button_save = ft.Button(
+    #     "Save file",
+    #     icon=ft.Icons.SAVE,
+    #     # on_click=lambda _: backend.save_file_dialog.save_file(),
+    #     # disabled=page.web,
+    # )
 
-    return ft.Row(controls=[button_add, button_save])
+    return ft.Row(controls=[button_add])
 
 
 async def add_new_file(e: ft.Event[ft.Button]) -> None:
@@ -63,9 +63,9 @@ async def add_new_file(e: ft.Event[ft.Button]) -> None:
 
     logger.info(f'Picked file: {fname_pick}')
     record = backend.save_file(fname_pick)
-    logger.info(f'New record: {record._for_log}')
+    logger.info(f'New record: {record._log}')
 
-    logger.info('change_page')
+    logger.info('Change page to /fig')
     selectedimage.data.set(record)
     selectedimage.data.editable_mode = True
     asyncio.create_task(ft.context.page.push_route(route_image))
@@ -79,18 +79,18 @@ def gallery() -> ft.Control:
     controls = [thumbnailbutton(d) for d in data]
 
     images = ft.Row(
-        width=1200,
+        width=config.frame_width,
         wrap=True,
         scroll='always',
         alignment=ft.MainAxisAlignment.CENTER,
-        spacing=5,
-        run_spacing=5,
+        spacing=config.gallery_spacing,
+        run_spacing=config.gallery_run_spacing,
         controls=controls,
     )
 
     return ft.Column(
         # width=1200,
-        height=400,
+        height=config.frame_height,
         controls=[images],
         scroll='always',
         alignment=ft.MainAxisAlignment.CENTER,
@@ -104,18 +104,23 @@ class ThumbnailConfig:
     inner_ratio: float = 0.90
 
     def __post_init__(self) -> None:
-        self.inner_width = self.width * 0.9
-        self.inner_height = self.width * 0.9
+        self.inner_width = self.width * self.inner_ratio
+        self.inner_height = self.width * self.inner_ratio
 
 
-ThumbnailConfigContext = ft.create_context(ThumbnailConfig(width=200, height=200))
+ThumbnailConfigContext = ft.create_context(
+    ThumbnailConfig(
+        width=config.gallery_thumnail_size[0],
+        height=config.gallery_thumnail_size[1],
+    )
+)
 
 
 @ft.component
 def thumbnailbutton(data: database.MainSchema) -> ft.Control:
     '''Image thumbnail button component.'''
 
-    config = ft.use_context(ThumbnailConfigContext)
+    thumbconfig = ft.use_context(ThumbnailConfigContext)
     fname = Path(data.directory) / data.filename
     if not fname.exists():
         logger.warning(f'No image exists: {fname}')
@@ -131,11 +136,11 @@ def thumbnailbutton(data: database.MainSchema) -> ft.Control:
     img = ft.Image(
         # src=str(fname.absolute()),
         src=data.thumbnail,
-        width=config.inner_width,
-        height=config.inner_height,
+        width=thumbconfig.inner_width,
+        height=thumbconfig.inner_height,
         fit=ft.BoxFit.COVER,
         repeat=ft.ImageRepeat.NO_REPEAT,
-        border_radius=ft.BorderRadius.all(20),
+        border_radius=ft.BorderRadius.all(config.gallery_border_radius),
     )
     button = ft.Button(
         content='',
@@ -150,12 +155,12 @@ def thumbnailbutton(data: database.MainSchema) -> ft.Control:
                 ft.ControlState.PRESSED: ft.Colors.BLUE_300,
                 ft.ControlState.DEFAULT: ft.Colors.TRANSPARENT,
             },
-            shape=ft.RoundedRectangleBorder(radius=20),
+            shape=ft.RoundedRectangleBorder(radius=config.gallery_border_radius),
             elevation=0,
         ),
-        width=config.inner_width,
-        height=config.inner_height,
-        opacity=0.3,
+        width=thumbconfig.inner_width,
+        height=thumbconfig.inner_height,
+        opacity=config.gallery_button_opacity,
     )
     stack = ft.Stack(
         [img, button],
@@ -165,9 +170,9 @@ def thumbnailbutton(data: database.MainSchema) -> ft.Control:
         content=stack,
         shadow_color=ft.Colors.GREY_600,
         bgcolor=ft.Colors.GREY_300,
-        width=config.width,
-        height=config.height,
-        shape=ft.RoundedRectangleBorder(radius=20),
+        width=thumbconfig.width,
+        height=thumbconfig.height,
+        shape=ft.RoundedRectangleBorder(radius=config.gallery_border_radius),
     )
 
 

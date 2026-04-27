@@ -34,7 +34,8 @@ class MainSchema(NamedTuple):
     tags: str = ''
     thumbnail: bytes = b''
 
-    def _for_log(self) -> MainSchema:
+    @property
+    def _log(self) -> MainSchema:
         '''Change self to simble contents just for log.'''
         return self._replace(thumbnail=b'...')
 

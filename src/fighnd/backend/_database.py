@@ -6,6 +6,7 @@ import os
 from logging import getLogger
 from pathlib import Path
 import sqlite3
+from .. import config
 
 __all__ = ['SQLTable']
 
@@ -13,9 +14,6 @@ logger = getLogger(__name__)
 
 
 ##
-DIRECTORY = Path(os.getenv('DIR_FIGHND', ''))
-
-
 class SQLTable:
     '''Table connection.'''
 
@@ -27,7 +25,7 @@ class SQLTable:
         bytes: 'BLOB',
     }
 
-    dbname = DIRECTORY / 'development.db'
+    dbname = config.homepath / 'development.db'
 
     def __init__(self, tablename: str) -> None:
         self.tname = tablename

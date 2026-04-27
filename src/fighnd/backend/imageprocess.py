@@ -5,13 +5,13 @@ from logging import getLogger
 from PIL import Image
 from io import BytesIO
 
-__all__ = ['get_thumbnail']
+__all__ = ['create_thumbnail']
 
 logger = getLogger(__name__)
 
 
 ##
-def get_thumbnail(fname_image) -> bytes:
+def create_thumbnail(fname_image) -> bytes:
     '''Convert an input image to thumbnail.'''
     img = Image.open(fname_image, 'r')
     thumbnail_size = (128, 128)

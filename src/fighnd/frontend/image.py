@@ -59,6 +59,11 @@ class SelectedDataContainer:
             thumbnail=self.thumbnail,
         )
 
+    def set_filename(self, fname: str) -> None:
+        '''Set both filename and path.'''
+        self.filename = fname
+        self.path_image = self.path_image.with_name(fname)
+
 
 @ft.component
 def imageview() -> ft.View:
@@ -83,7 +88,7 @@ def imageview() -> ft.View:
 @ft.component
 def frame_main() -> ft.Column:
     '''Main frame of imageview.'''
-    _data = selectedimage.data
+    _data: SelectedDataContainer = selectedimage.data
     editable_mode, set_editable_mode = ft.use_state(_data.editable_mode)
     _data.editable_mode = editable_mode
 
@@ -91,6 +96,7 @@ def frame_main() -> ft.Column:
 
     def save_data():
         database.update_data(data.dump())
+        backend.io.move(_data.path_image, data.path_image)
         selectedimage.data = data
 
     appbar = frame_appbar(data, editable_mode)
@@ -114,7 +120,7 @@ def frame_appbar(data: SelectedDataContainer, editable_mode: bool) -> ft.Column:
         fname = Path(data.filename)
 
         def set_textfield(e: ft.Event):
-            data.filename = e.control.value + fname.suffix
+            data.set_filename(e.control.value + fname.suffix)
 
         return ft.AppBar(
             title=ft.TextField(
